@@ -45,7 +45,7 @@ bash test.sh
 Modify the training set and validation set path in `options/train/DIMT.yml`,`options/train/DIMT-GAN.yml`,
 
 
-#### 2. Begin to train
+#### Step2. Begin to train
 For DIMT, run this command: 
 ```
 bash run.sh
@@ -53,7 +53,7 @@ bash run.sh
 For DIMT-GAN, change the pretrained model path in `options/train/DIMT-GAN.yml` to the pretrained model path obtained before. We apply two-stage training by commenting out the code in run.sh for different training configs.
 Then run this command:
 ```
-sh run.sh
+bash run.sh
 ```
 
 
