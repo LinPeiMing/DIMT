@@ -1,0 +1,172 @@
+# general settings
+name: DIMT
+model_type: ImageRestorationRealSSRModel
+scale: 4
+num_gpu: 1  # auto: can infer from your visible devices automatically. official: 4 GPUs
+manual_seed: 10
+
+gt_usm: true  # USM the ground-truth
+gt_size: 256
+window_size: 16
+noise_pool_path: ./degradation_pool/noise/
+
+# the first degradation process
+resize_prob: [0.2, 0.7, 0.1]  # up, down, keep
+resize_range: [0.15, 1.5]
+gaussian_noise_prob: 0.5
+noise_prob: [0.4, 0.4, 0.2] # gaussian, poisson, real
+noise_range: [1, 30]
+poisson_scale_range: [0.05, 3]
+gray_noise_prob: 0.4
+jpeg_range: [30, 95]
+
+# the second degradation process
+second_blur_prob: 0.5
+resize_prob2: [0.3, 0.4, 0.3]  # up, down, keep
+resize_range2: [0.3, 1.2]
+gaussian_noise_prob2: 0.5
+noise_prob2: [0.4, 0.4, 0.2] # gaussian, poisson, real
+noise_range2: [1, 25]
+poisson_scale_range2: [0.05, 2.5]
+gray_noise_prob2: 0.4
+jpeg_range2: [30, 95]
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: Flickr1024-sr-train
+    type: UnPairedStereoImageDataset
+    dataroot_gt: ./Dataset/trainset/hr
+    io_backend:
+      type: disk
+
+    blur_kernel_size: 21
+    kernel_list: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso']
+    kernel_prob: [0.45, 0.25, 0.12, 0.03, 0.12, 0.03]
+    blur_sigma: [0.2, 3]
+    betag_range: [0.5, 4]
+    betap_range: [1, 2]
+
+    blur_kernel_size2: 21
+    kernel_list2: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso', 'real']
+    kernel_prob2: [0.36, 0.2, 0.1, 0.02, 0.1, 0.02, 0.2]
+    blur_sigma2: [0.2, 1.5]
+    betag_range2: [0.5, 4]
+    betap_range2: [1, 2]
+
+    blur_kernel_size3: 21
+    kernel_list3: ['iso', 'aniso', 'generalized_iso', 'generalized_aniso', 'plateau_iso', 'plateau_aniso', 'real']
+    kernel_prob3: [0.36, 0.2, 0.1, 0.02, 0.1, 0.02, 0.2]
+    blur_sigma3: [0.2, 1.5]
+    betag_range3: [0.5, 4]
+    betap_range3: [1, 2]
+
+    gt_size: 256
+    window_size: 16
+    use_hflip: true
+    use_vflip: true
+    use_rot: false
+    flip_RGB: false
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 4
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+# Uncomment these for validation
+  val:
+   name: validation
+   type: PairedImageSRLRDataset
+   dataroot_gt: ./Dataset/Real_stereo_test/KITTI2012/HHRR
+   dataroot_lq: ./Dataset/Real_stereo_test/KITTI2012/LLRR_x4
+   io_backend:
+     type: disk
+
+# network structures
+network_g:
+  type: DIMT
+#  upscale: 4
+#  in_chans: 3
+#  img_size: 64
+#  window_size: 8
+#  compress_ratio: 3
+#  squeeze_factor: 30
+#  conv_scale: 0.01
+#  overlap_ratio: 0.5
+#  img_range: 1.
+#  depths: [ 6, 6, 6, 6 ]
+#  embed_dim: 96
+#  num_heads: [ 6, 6, 6, 6 ]
+#  mlp_ratio: 4
+#  upsampler: 'pixelshuffle'
+#  resi_connection: 'SFB'
+
+# path
+path:
+  pretrain_network_g: ~
+#  pretrain_network_g: /media/li547/LinPeiMing/1/SC-NAFSSR-main/experiments/swin-S-SFAM/models/net_g_300000.pth
+  param_key_g: params_ema
+  strict_load_g: true
+  resume_state: ~
+
+# training settings
+train:
+  ema_decay: 0.999
+  optim_g:
+    type: AdamW
+    lr: !!float 5e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+
+  scheduler:
+    type: TrueCosineAnnealingLR
+    T_max: 300000
+    eta_min: !!float 1e-7
+
+  total_iter: 300000
+  warmup_iter: -1  # no warm up
+  mixup: false
+
+  # losses
+  pixel_opt:
+    type: MSELoss
+    loss_weight: 1.0
+    reduction: mean
+
+# validation settings
+val:
+  val_freq: !!float 1e4
+  save_img: false
+
+  trans_num: 1
+  max_minibatch: 1
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_skimage_ssim
+    lpips:
+      type: calculate_lpips
+    score:
+      type: calculate_score
+      fast: true
+
+
+# logging settings
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 2e4
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500

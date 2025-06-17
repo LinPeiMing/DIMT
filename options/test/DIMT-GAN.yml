@@ -1,0 +1,56 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2022 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: DIMT-GAN
+model_type: ImageRestorationRealSSRModel
+scale: 4
+num_gpu: 1
+manual_seed: 10
+
+datasets:
+  test1:
+    name: KITTI2012
+    type: PairedImageSRLRDataset
+    dataroot_gt: ./Dataset/Real_stereo_test/KITTI2012/HHRR
+    dataroot_lq: ./Dataset/Real_stereo_test/KITTI2012/LLRR_x4
+    io_backend:
+      type: disk
+
+# network structures
+network_g:
+  type: DIMT
+
+# path
+path:
+  pretrain_network_g: ./experiments/DIMT-GAN/models/net_g_100000.pth
+  strict_load_g: true
+  param_key_g: params_ema
+  resume_state: ~
+
+# validation settings
+val:
+  save_img: true
+  grids: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_skimage_ssim
+    lpips:
+      type: calculate_lpips
+    score:
+      type: calculate_score
+      fast: false
+
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
